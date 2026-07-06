@@ -1,0 +1,132 @@
+.TH CAFFEINATE 1 "2026-07-06" "caffeinate" "User Commands"
+.SH NAME
+caffeinate \- prevent the system from sleeping
+.SH SYNOPSIS
+.B caffeinate
+.RB [ \-dismu ]
+.RB [ \-t
+.IR seconds ]
+.RB [ \-w
+.IR pid ]
+.RB [ \-v ]
+.RI [ command " [" args ...]]
+.SH DESCRIPTION
+.B caffeinate
+prevents the system (and optionally the display) from going to sleep while it
+runs.  It is a Linux clone of the macOS
+.BR caffeinate (8)
+command and is deliberately
+.B init\-system agnostic:
+it speaks D\-Bus directly via libdbus and never links against or invokes
+systemd.
+.PP
+Its primary backend is the freedesktop
+.B login1
+manager interface, implemented by
+.B systemd\-logind
+on systemd distributions and by
+.B elogind
+on non\-systemd distributions (Void, Devuan, Artix, Gentoo/OpenRC, ...).  If no
+login1 provider is present it falls back to the session\-bus
+.B org.freedesktop.ScreenSaver
+and
+.B org.freedesktop.PowerManagement.Inhibit
+interfaces used by GNOME, KDE and other desktops.
+.PP
+If no assertion option is supplied,
+.B \-i
+is assumed.  caffeinate holds its assertion until a terminating condition is
+reached: the
+.B \-t
+timeout elapses, the
+.B \-w
+process exits, the spawned
+.I command
+exits, or caffeinate is interrupted.
+.SH OPTIONS
+.SS Assertions
+.TP
+.B \-d
+Prevent the display from sleeping.
+.TP
+.B \-i
+Prevent the system from idle sleeping.  This is the default.
+.TP
+.B \-m
+Prevent the disk from idle sleeping.  Accepted for macOS compatibility; Linux
+has no distinct disk\-idle assertion, so this is folded into
+.BR \-i .
+.TP
+.B \-s
+Prevent the system from sleeping entirely (suspend/hibernate).
+.TP
+.B \-u
+Declare that the user is active.  Asserts a display\-wake for the timeout
+duration (defaulting to 5 seconds when no
+.B \-t
+is given).
+.SS Duration
+.TP
+.BI \-t " seconds"
+Hold the assertion for the given number of seconds, then exit.
+.TP
+.BI \-w " pid"
+Hold the assertion until the process with the given pid exits.
+.TP
+.IR command " [" args ...]
+Run
+.I command
+and hold the assertion until it exits.  caffeinate exits with the command's
+exit status.
+.SS Other
+.TP
+.B \-v
+Verbose: report which inhibition backends were engaged.
+.TP
+.BR \-h ", " \-\-help
+Print a usage summary and exit.
+.TP
+.B \-\-version
+Print the version and exit.
+.SH EXIT STATUS
+When a
+.I command
+is run, caffeinate exits with that command's status (128+signal if it was
+killed, 127 if it could not be executed).  Otherwise it exits 0 on normal
+completion, or 2 on a command\-line usage error.
+.SH EXAMPLES
+Keep the system awake until interrupted:
+.PP
+.RS
+.B caffeinate
+.RE
+.PP
+Keep the display awake during a long download:
+.PP
+.RS
+.B caffeinate \-d wget https://example.com/big.iso
+.RE
+.PP
+Prevent suspend for one hour:
+.PP
+.RS
+.B caffeinate \-s \-t 3600
+.RE
+.PP
+Stay awake until a specific process finishes:
+.PP
+.RS
+.B caffeinate \-w $(pgrep \-n rsync)
+.RE
+.SH NOTES
+The locks are taken in login1
+.I block
+mode, so they stop the machine from sleeping on its own.  They do not stop you
+from suspending it deliberately - only the automatic, idle-triggered kind of
+sleep is inhibited, which is the whole point of caffeinate.
+.SH SEE ALSO
+.BR systemd-inhibit (1),
+.BR loginctl (1),
+.BR org.freedesktop.login1 (5)
+.SH AUTHOR
+A from-scratch, init-system-agnostic take on the macOS caffeinate command.
