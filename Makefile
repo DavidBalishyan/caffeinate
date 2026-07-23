@@ -8,7 +8,7 @@ DBUS_CFLAGS := $(shell $(PKG) --cflags dbus-1)
 DBUS_LIBS   := $(shell $(PKG) --libs dbus-1)
 
 CFLAGS  ?= -O2 -g
-CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic $(DBUS_CFLAGS)
+CFLAGS  += -D_GNU_SOURCE -std=c11 -Wall -Wextra -Wpedantic $(DBUS_CFLAGS)
 LDLIBS  += $(DBUS_LIBS)
 
 BIN := caffeinate
